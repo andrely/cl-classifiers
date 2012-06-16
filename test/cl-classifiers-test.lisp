@@ -4,3 +4,4 @@
   (:use :common-lisp :cl-classifiers))
 
 (in-package :cl-classifiers-test)
+
