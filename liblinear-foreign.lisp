@@ -112,8 +112,6 @@
                               (append (cadr data) (list (list n 1.0) (list -1 0.0)))
                               (append (cadr data) (list (list -1 0.0))))
 
-                do (pprint (list l-idx nodes))
-
                 when (>= l-idx l) do (error "l out of bounds")
 
                 do (setf (cffi:mem-aref y-mem :double l-idx)
@@ -121,7 +119,6 @@
 
                 do (loop for (index value) in nodes
                          for node = (cffi:mem-aref x-mem '%feature-node count)
-                         do (pprint (list count index value))
                          when (>= count x-mem-size) do (error "node count out of bounds")
                          do (setf (cffi:foreign-slot-value node '%feature-node 'index)
                                   (coerce index 'integer))
@@ -165,3 +162,10 @@
   (when (not (cffi:null-pointer-p (cffi:foreign-slot-value param '%parameter 'weight)))
     (cffi:foreign-free (cffi:foreign-slot-value param '%parameter 'weight)))
   (cffi:foreign-free param))
+
+(defun %free-model (model)
+  (cffi:foreign-free (cffi:mem-aref (cffi:foreign-slot-value model '%model 'w)
+                                    '(:pointer :double)))
+  (cffi:foreign-free (cffi:mem-aref (cffi:foreign-slot-value model '%model 'label)
+                                    '(:pointer :int)))
+  (cffi:foreign-free model))
