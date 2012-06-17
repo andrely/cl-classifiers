@@ -50,6 +50,10 @@
   (prob (:pointer %problem))
   (param (:pointer %parameter)))
 
+(cffi:defcfun ("predict" %predict) :double
+  (model (:pointer %model))
+  (x (:pointer %feature-node)))
+
 (defun parse-data-line (line)
   (let* ((items (split-line line)))
     (if (null items)
@@ -79,7 +83,7 @@
   (let ((prob (cffi:foreign-alloc '%problem)))
     (destructuring-bind (node-count l n)
         (extract-metadata-from-file fn)
-      (when (> 0 bias)
+      (when (> bias 0)
         (incf n)
         (incf node-count l))
 
@@ -87,8 +91,6 @@
       (setf (cffi:foreign-slot-value prob '%problem 'n) n)
       (setf (cffi:foreign-slot-value prob '%problem 'bias)
             (coerce 1.0 'double-float))
-
-      
 
       (let* ((y-mem (cffi:foreign-alloc :double :count l))
              (x-mem-size (+ node-count l))
@@ -169,3 +171,12 @@
   (cffi:foreign-free (cffi:mem-aref (cffi:foreign-slot-value model '%model 'label)
                                     '(:pointer :int)))
   (cffi:foreign-free model))
+
+(defun %write-feature-nodes (x-ptr nodes)
+  (loop for i from 0
+        for (index value) in nodes
+        for node = (cffi:mem-aref x-ptr '%feature-node i)
+        do (setf (cffi:foreign-slot-value node '%feature-node 'index)
+                 (coerce index 'integer))
+        do (setf (cffi:foreign-slot-value node '%feature-node 'value)
+                 (coerce value 'double-float))))
