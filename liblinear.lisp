@@ -3,7 +3,7 @@
 (defstruct model
   foreign-problem foreign-parameter foreign-model)
 
-(defun make-model-from-file (fn &key (bias *default-bias*))
+(defun train-model-from-file (fn &key (bias *default-bias*))
   (let* ((f-prob (%init-problem fn :bias bias))
          (f-param (%init-parameter))
          (f-model (%train f-prob f-param)))
@@ -13,10 +13,22 @@
 
 (defun dispose-model (model)
   (%free-parameter (model-foreign-parameter model))
-  (%free-problem (model-foreign-problem model))
   (%free-model (model-foreign-model model))
 
+  (if (not (cffi:null-pointer-p (model-foreign-problem model)))
+    (%free-problem (model-foreign-problem model)))
+  
   nil)
+
+(defun save-model-to-file (model filename)
+  (%save-model filename (model-foreign-model model)))
+
+(defun load-model-from-file (filename)
+  (let* ((foreign-model (%load-model filename))
+         (foreign-param (cffi:foreign-slot-value foreign-model '%model 'param)))
+    (make-model :foreign-problem (cffi:null-pointer)
+                :foreign-parameter foreign-param
+                :foreign-model foreign-model)))
 
 (defun model-bias (model)
   (cffi:foreign-slot-value (model-foreign-model model) '%model 'bias))
@@ -28,7 +40,9 @@
   (cffi:foreign-slot-value (model-foreign-model model) '%model 'nr-class))
 
 (defun model-data-count (model)
-  (cffi:foreign-slot-value (model-foreign-problem model) '%problem 'l))
+  (if (cffi:null-pointer-p (model-foreign-problem model))
+    nil
+    (cffi:foreign-slot-value (model-foreign-problem model) '%problem 'l)))
 
 (defun model-weight-vector (model)
   (let* ((w-mem (cffi:foreign-slot-value (model-foreign-model model) '%model 'w))
@@ -64,54 +78,55 @@
   (%set-print-string-func (cffi:null-pointer)))
 
 (defun cross-validation (model &key (folds 10))
-  (let* ((l (model-data-count model))
-         (target (cffi:foreign-alloc :double :count l))
-         (y (cffi:foreign-slot-value (model-foreign-problem model) '%problem 'y))
+  (unless (null (model-data-count model))
+    (let* ((l (model-data-count model))
+           (target (cffi:foreign-alloc :double :count l))
+           (y (cffi:foreign-slot-value (model-foreign-problem model) '%problem 'y))
 
-         (total-correct 0)
-         (total-error 0)
-         (sum-v 0)
-         (sum-y 0)
-         (sum-vv 0)
-         (sum-yy 0)
-         (sum-vy 0))
+           (total-correct 0)
+           (total-error 0)
+           (sum-v 0)
+           (sum-y 0)
+           (sum-vv 0)
+           (sum-yy 0)
+           (sum-vy 0))
     
-    (%cross-validation (model-foreign-problem model)
-                       (model-foreign-parameter model)
-                       folds
-                       target)
+      (%cross-validation (model-foreign-problem model)
+                         (model-foreign-parameter model)
+                         folds
+                         target)
 
-    (cond ((member (model-solver-type model)
-                   '(:L2R-L2LOSS-SVR :L2R-L1LOSS-SVR-DUAL :L2R-L2LOSS-SVR-DUAL))
-           (loop for i from 0 below l
-                 for y = (cffi:mem-aref y :double i)
-                 for v = (cffi:mem-aref target :double i)
-                 do (incf total-error (* (- v y) (- v y)))
-                 do (incf sum-v v)
-                 do (incf sum-y y)
-                 do (incf sum-vv (* v v))
-                 do (incf sum-yy (* y y))
-                 do (incf sum-vy (* v y)))
+      (cond ((member (model-solver-type model)
+                     '(:L2R-L2LOSS-SVR :L2R-L1LOSS-SVR-DUAL :L2R-L2LOSS-SVR-DUAL))
+             (loop for i from 0 below l
+                   for y = (cffi:mem-aref y :double i)
+                   for v = (cffi:mem-aref target :double i)
+                   do (incf total-error (* (- v y) (- v y)))
+                   do (incf sum-v v)
+                   do (incf sum-y y)
+                   do (incf sum-vv (* v v))
+                   do (incf sum-yy (* y y))
+                   do (incf sum-vy (* v y)))
 
-           (format t "Cross Validation Mean squared error = ~$~%"
-                   (/ total-error l))
-           (format t "Cross Validation Squared correlation coefficient = ~$~%"
-                   (/ (* (- (* l sum-vy)
-                            (* sum-v sum-y))
-                         (- (* l sum-vy)
-                            (* sum-v sum-y)))
-                      (* (- (* l sum-vv)
-                            (* sum-v sum-v))
-                         (- (* l sum-yy)
-                            (* sum-y sum-y))))))
-          (t (loop for i from 0 below l
-                   when (= (cffi:mem-aref target :double i)
-                           (cffi:mem-aref y :double i))
-                   do (incf total-correct))
+             (format t "Cross Validation Mean squared error = ~$~%"
+                     (/ total-error l))
+             (format t "Cross Validation Squared correlation coefficient = ~$~%"
+                     (/ (* (- (* l sum-vy)
+                              (* sum-v sum-y))
+                           (- (* l sum-vy)
+                              (* sum-v sum-y)))
+                        (* (- (* l sum-vv)
+                              (* sum-v sum-v))
+                           (- (* l sum-yy)
+                              (* sum-y sum-y))))))
+            (t (loop for i from 0 below l
+                     when (= (cffi:mem-aref target :double i)
+                             (cffi:mem-aref y :double i))
+                     do (incf total-correct))
 
-             (format t "Cross validation accuracy = ~$ %~%"
-                     (* 100.0 (/ total-correct l)))))
+               (format t "Cross validation accuracy = ~$ %~%"
+                       (* 100.0 (/ total-correct l)))))
     
-    (cffi:foreign-free target)
+      (cffi:foreign-free target)
 
-    nil))
+      nil)))

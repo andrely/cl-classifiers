@@ -160,18 +160,18 @@
 
     param))
 
+(cffi:defcfun ("destroy_param" %destroy-param) :void
+  (param (:pointer %parameter)))
+
 (defun %free-parameter (param)
-  (when (not (cffi:null-pointer-p (cffi:foreign-slot-value param '%parameter 'weight-label)))
-    (cffi:foreign-free (cffi:foreign-slot-value param '%parameter 'weight-label)))
-  (when (not (cffi:null-pointer-p (cffi:foreign-slot-value param '%parameter 'weight)))
-    (cffi:foreign-free (cffi:foreign-slot-value param '%parameter 'weight)))
+  (%destroy-param param)
   (cffi:foreign-free param))
 
+(cffi:defcfun ("free_model_content" %free-model-content) :void
+  (model (:pointer %model)))
+
 (defun %free-model (model)
-  (cffi:foreign-free (cffi:mem-aref (cffi:foreign-slot-value model '%model 'w)
-                                    '(:pointer :double)))
-  (cffi:foreign-free (cffi:mem-aref (cffi:foreign-slot-value model '%model 'label)
-                                    '(:pointer :int)))
+  (%free-model-content model)
   (cffi:foreign-free model))
 
 (defun %write-feature-nodes (x-ptr nodes)
@@ -208,3 +208,10 @@
   (:L2R-L2LOSS-SVR 11)
   :L2R-L2LOSS-SVR-DUAL
   :L2R-L1LOSS-SVR-DUAL)
+
+(cffi:defcfun ("load_model" %load-model) (:pointer %model)
+  (model-file-name :string))
+
+(cffi:defcfun ("save_model" %save-model) :int
+  (model-file-name :string)
+  (model (:pointer %model)))
