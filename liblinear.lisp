@@ -6,7 +6,16 @@
 (defun train-model-from-file (fn &key (bias *default-bias*))
   (let* ((f-prob (%init-problem fn :bias bias))
          (f-param (%init-parameter))
-         (f-model (%train f-prob f-param)))
+         (f-model (%train f-prob f-param))
+         (check-ptr (%check-parameter f-prob f-param)))
+
+    ;; TODO add error handler to release already allocated
+    ;; foreign memory here
+    (when (not (cffi:null-pointer-p check-ptr))
+      (let ((msg (cffi:convert-from-foreign check-ptr :string)))
+        (cffi:foreign-free check-ptr)
+        (error msg)))
+    
     (make-model :foreign-problem f-prob
                 :foreign-parameter f-param
                 :foreign-model f-model)))
