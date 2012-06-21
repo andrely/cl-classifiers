@@ -1,7 +1,9 @@
 (in-package :cl-classifiers)
 
 (defparameter *default-bias* -1.0)
-(defparameter *default-solver-type* 0)
+(defparameter *default-solver-type*
+  (cffi:foreign-enum-value '%solver-types :l2r-lr))
+
 (defparameter *test-x*
   '((2 0.1) (3 0.2) (6 1) (-1 0)
     (2 0.1) (3 0.3) (4 -1.2) (6 1) (-1 0)
@@ -188,8 +190,21 @@
 (cffi:defcfun ("set_print_string_function" %set-print-string-func) :void
   (print-func :pointer))
 
-(defun %enable-output ()
-  (%set-print-string-func (cffi:callback standard-write)))
+(cffi:defcfun ("cross_validation" %cross-validation) :void
+  (prob (:pointer %problem))
+  (param (:pointer %parameter))
+  (nr-fold :int)
+  (target (:pointer :double)))
 
-(defun %disable-output ()
-  (%set-print-string-func (cffi:null-pointer)))
+(cffi:defcenum %solver-types
+  :L2R-LR
+  :L2R-L2LOSS-SVC-DUAL
+  :L2R-L2LOSS-SVC
+  :L2R-L1LOSS-SVC-DUAL
+  :MCSVM-CS
+  :L1R-L2LOSS-SVC
+  :L1R-LR
+  :L2R-LR-DUAL
+  (:L2R-L2LOSS-SVR 11)
+  :L2R-L2LOSS-SVR-DUAL
+  :L2R-L1LOSS-SVR-DUAL)
