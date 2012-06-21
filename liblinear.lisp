@@ -3,9 +3,9 @@
 (defstruct model
   foreign-problem foreign-parameter foreign-model)
 
-(defun train-model-from-file (fn &key (bias *default-bias*))
+(defun train-model-from-file (fn &key (solver-type *default-solver-type*) (bias *default-bias*))
   (let* ((f-prob (%init-problem fn :bias bias))
-         (f-param (%init-parameter))
+         (f-param (%init-parameter :solver-type solver-type))
          (f-model (%train f-prob f-param))
          (check-ptr (%check-parameter f-prob f-param)))
 

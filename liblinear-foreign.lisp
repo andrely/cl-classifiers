@@ -1,8 +1,7 @@
 (in-package :cl-classifiers)
 
 (defparameter *default-bias* -1.0)
-(defparameter *default-solver-type*
-  (cffi:foreign-enum-value '%solver-types :l2r-lr))
+(defparameter *default-solver-type* :l2r-lr)
 
 (defparameter *test-x*
   '((2 0.1) (3 0.2) (6 1) (-1 0)
@@ -145,7 +144,8 @@
 
 (defun %init-parameter (&key (solver-type *default-solver-type*))
   (let ((param (cffi:foreign-alloc '%parameter)))
-    (setf (cffi:foreign-slot-value param '%parameter 'solver-type) solver-type)
+    (setf (cffi:foreign-slot-value param '%parameter 'solver-type)
+          (cffi:foreign-enum-value '%solver-types solver-type))
     (setf (cffi:foreign-slot-value param '%parameter 'eps)
           (coerce 0.01 'double-float))
     (setf (cffi:foreign-slot-value param '%parameter 'c)
