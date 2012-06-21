@@ -180,3 +180,16 @@
                  (coerce index 'integer))
         do (setf (cffi:foreign-slot-value node '%feature-node 'value)
                  (coerce value 'double-float))))
+
+(cffi:defcallback standard-write :void
+    ((s :string))
+  (format t "~a" s))
+
+(cffi:defcfun ("set_print_string_function" %set-print-string-func) :void
+  (print-func :pointer))
+
+(defun %enable-output ()
+  (%set-print-string-func (cffi:callback standard-write)))
+
+(defun %disable-output ()
+  (%set-print-string-func (cffi:null-pointer)))
