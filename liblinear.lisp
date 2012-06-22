@@ -90,7 +90,7 @@
   (unless (null (model-data-count model))
     (let* ((l (model-data-count model))
            (target (cffi:foreign-alloc :double :count l))
-           (y (cffi:foreign-slot-value (model-foreign-problem model) '%problem 'y))
+           (y-ptr (cffi:foreign-slot-value (model-foreign-problem model) '%problem 'y))
 
            (total-correct 0)
            (total-error 0)
@@ -104,11 +104,11 @@
                          (model-foreign-parameter model)
                          folds
                          target)
-
+      
       (cond ((member (model-solver-type model)
                      '(:L2R-L2LOSS-SVR :L2R-L1LOSS-SVR-DUAL :L2R-L2LOSS-SVR-DUAL))
              (loop for i from 0 below l
-                   for y = (cffi:mem-aref y :double i)
+                   for y = (cffi:mem-aref y-ptr :double i)
                    for v = (cffi:mem-aref target :double i)
                    do (incf total-error (* (- v y) (- v y)))
                    do (incf sum-v v)
@@ -130,12 +130,12 @@
                               (* sum-y sum-y))))))
             (t (loop for i from 0 below l
                      when (= (cffi:mem-aref target :double i)
-                             (cffi:mem-aref y :double i))
+                             (cffi:mem-aref y-ptr :double i))
                      do (incf total-correct))
 
                (format t "Cross validation accuracy = ~$ %~%"
                        (* 100.0 (/ total-correct l)))))
-    
+      
       (cffi:foreign-free target)
 
       nil)))
