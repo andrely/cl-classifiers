@@ -3,16 +3,6 @@
 (defparameter *default-bias* -1.0)
 (defparameter *default-solver-type* :l2r-lr)
 
-(defparameter *test-x*
-  '((2 0.1) (3 0.2) (6 1) (-1 0)
-    (2 0.1) (3 0.3) (4 -1.2) (6 1) (-1 0)
-    (1 0.4) (6 1) (-1 0)
-    (2 0.1) (4 1.4) (5 0.5) (6 1) (-1 0)
-    (1 -0.1) (2 -0.2) (3 0.1) (4 1.1) (5 0.1) (6 1) (-1 0)))
-
-(defparameter *test-y*
-  '(1 2 1 2 3))
-
 (cffi:load-foreign-library "/Users/stinky/Downloads/liblinear-1.91/liblinear.so.1")
 
 (cffi:defcstruct %feature-node
