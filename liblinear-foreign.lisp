@@ -45,6 +45,16 @@
   (model (:pointer %model))
   (x (:pointer %feature-node)))
 
+(cffi:defcfun ("predict_values" %predict-values) :double
+  (model (:pointer %model))
+  (x (:pointer %feature-node))
+  (dec-values (:pointer :double)))
+
+(cffi:defcfun ("predict_probability" %predict-probability) :double
+  (model (:pointer %model))
+  (x (:pointer %feature-node))
+  (prob-estimates (:pointer :double)))
+
 (defun parse-data-line (line)
   (let* ((items (split-line line)))
     (if (null items)
